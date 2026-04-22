@@ -125,7 +125,12 @@
         .history-content { flex: 1; }
         .history-content b { font-size: 0.9rem; color: #333; }
         .history-content p { margin: 0; font-size: 0.75rem; color: #888; }
-        .btn-del { border: none; background: #fef2f2; color: #ef4444; padding: 8px; border-radius: 10px; cursor: pointer; font-size: 0.75rem; }
+        .history-actions { display: flex; gap: 5px; }
+        .action-btn { border: none; padding: 8px; border-radius: 10px; cursor: pointer; transition: 0.2s; font-size: 1rem; display: flex; align-items: center; justify-content: center; }
+        .btn-edit { background: #eff6ff; color: #3b82f6; }
+        .btn-edit:hover { background: #3b82f6; color: white; }
+        .btn-del { background: #fef2f2; color: #ef4444; }
+        .btn-del:hover { background: #ef4444; color: white; }
     </style>
 </head>
 <body>
@@ -147,6 +152,7 @@
 
         <!-- Create Section -->
         <div id="section-create">
+            <input type="hidden" id="edit-id" value="">
             <div class="input-group">
                 <label>ชื่อเจ้าของวันเกิด</label>
                 <input type="text" id="target-name" class="input-3d" placeholder="ชื่อเพื่อน...">
@@ -199,7 +205,7 @@
                 </select>
             </div>
 
-            <button class="btn-3d" onclick="generatePreview()">สร้างการ์ดตอนนี้ 🎁</button>
+            <button class="btn-3d" id="btn-submit" onclick="generatePreview()">สร้างการ์ดตอนนี้ 🎁</button>
         </div>
 
         <!-- History Section -->
@@ -270,6 +276,9 @@
             document.getElementById('section-history').style.display = tab === 'history' ? 'block' : 'none';
             document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', (tab === 'create' && i === 0) || (tab === 'history' && i === 1)));
             if (tab === 'history') renderHistory();
+            if (tab === 'create' && !document.getElementById('edit-id').value) {
+                document.getElementById('btn-submit').innerText = "สร้างการ์ดตอนนี้ 🎁";
+            }
         }
 
         function generatePreview() {
@@ -278,6 +287,7 @@
             const wish = document.getElementById('wish-select').value;
             const size = document.getElementById('size-select').value;
             const theme = document.getElementById('theme-select').value;
+            const editId = document.getElementById('edit-id').value;
 
             if (!target || !sender) return alert("กรุณาระบุชื่อเพื่อนและชื่อของคุณด้วยนะครับ");
 
@@ -292,7 +302,6 @@
             if (currentImageData) { imgEl.src = currentImageData; imgEl.style.display = 'block'; }
             else { imgEl.style.display = 'none'; }
 
-            // แก้ไขการแสดงผลพื้นหลังให้ชัดเจนขึ้น
             if (theme !== 'none') {
                 capture.style.backgroundImage = `linear-gradient(rgba(255,255,255,0.4), rgba(255,255,255,0.4)), url('${theme}')`;
                 capture.style.backgroundColor = "transparent";
@@ -304,19 +313,30 @@
             document.getElementById('preview-overlay').style.display = 'flex';
 
             saveToHistory({ 
-                id: Date.now(), 
+                id: editId || Date.now().toString(), 
                 target, 
                 sender, 
                 wish, 
+                size,
+                theme,
                 image: currentImageData, 
                 date: new Date().toLocaleDateString('th-TH') 
             });
+
+            // Reset edit id after saving
+            document.getElementById('edit-id').value = "";
+            document.getElementById('btn-submit').innerText = "สร้างการ์ดตอนนี้ 🎁";
         }
 
         function saveToHistory(data) {
             let history = JSON.parse(localStorage.getItem('birthday_history') || '[]');
-            history.unshift(data);
-            if (history.length > 10) history.pop();
+            const index = history.findIndex(item => item.id === data.id);
+            if (index > -1) {
+                history[index] = data;
+            } else {
+                history.unshift(data);
+            }
+            if (history.length > 15) history.pop();
             localStorage.setItem('birthday_history', JSON.stringify(history));
         }
 
@@ -331,12 +351,33 @@
                         <b>ถึงคุณ ${item.target}</b>
                         <p>จาก: ${item.sender} | ${item.date}</p>
                     </div>
-                    <button class="btn-del" onclick="deleteHistory(${item.id})">ลบ</button>
+                    <div class="history-actions">
+                        <button class="action-btn btn-edit" onclick="editHistory('${item.id}')" title="แก้ไข">✎</button>
+                        <button class="action-btn btn-del" onclick="deleteHistory('${item.id}')" title="ลบ">✕</button>
+                    </div>
                 </div>
             `).join('');
         }
 
+        function editHistory(id) {
+            const history = JSON.parse(localStorage.getItem('birthday_history') || '[]');
+            const item = history.find(i => i.id === id);
+            if (item) {
+                document.getElementById('edit-id').value = item.id;
+                document.getElementById('target-name').value = item.target;
+                document.getElementById('sender-name').value = item.sender;
+                document.getElementById('wish-select').value = item.wish;
+                document.getElementById('size-select').value = item.size || "ratio-square";
+                document.getElementById('theme-select').value = item.theme || "none";
+                currentImageData = item.image || "";
+                
+                document.getElementById('btn-submit').innerText = "อัปเดตการ์ดใบเดิม 🔄";
+                switchTab('create');
+            }
+        }
+
         function deleteHistory(id) {
+            if(!confirm("ต้องการลบประวัตินี้ใช่หรือไม่?")) return;
             let history = JSON.parse(localStorage.getItem('birthday_history') || '[]');
             history = history.filter(item => item.id !== id);
             localStorage.setItem('birthday_history', JSON.stringify(history));
