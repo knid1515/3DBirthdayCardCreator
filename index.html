@@ -66,6 +66,28 @@
         }
         .input-3d:focus { border-bottom: 3px solid var(--primary); }
 
+        /* ส่วนแสดงรูปภาพที่เลือกแล้ว (Edit Mode) */
+        .image-preview-box {
+            display: none;
+            margin-top: 10px;
+            text-align: center;
+            background: #fff;
+            padding: 10px;
+            border-radius: 15px;
+            border: 2px dashed var(--primary);
+        }
+        .image-preview-box img {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            object-fit: cover;
+        }
+        .image-preview-box p {
+            font-size: 10px;
+            color: var(--primary);
+            margin: 5px 0 0;
+        }
+
         .btn-3d {
             background: var(--primary); color: white; border: none;
             padding: 15px; border-radius: 18px; font-size: 1.1rem; font-weight: 600;
@@ -161,6 +183,10 @@
             <div class="input-group">
                 <label>รูปภาพเจ้าของวันเกิด</label>
                 <input type="file" id="target-image" class="input-3d" accept="image/*">
+                <div id="edit-image-preview" class="image-preview-box">
+                    <img id="edit-preview-img" src="">
+                    <p>ใช้รูปภาพเดิม (เลือกไฟล์ใหม่เพื่อเปลี่ยน)</p>
+                </div>
             </div>
 
             <div class="input-group">
@@ -263,6 +289,12 @@
                             canvas.width = w; canvas.height = h;
                             canvas.getContext('2d').drawImage(img, 0, 0, w, h);
                             currentImageData = canvas.toDataURL('image/jpeg', 0.8);
+                            
+                            // อัปเดตส่วนแสดงตัวอย่างในหน้า Edit
+                            const previewBox = document.getElementById('edit-image-preview');
+                            const previewImg = document.getElementById('edit-preview-img');
+                            previewImg.src = currentImageData;
+                            previewBox.style.display = 'block';
                         };
                         img.src = event.target.result;
                     };
@@ -276,9 +308,24 @@
             document.getElementById('section-history').style.display = tab === 'history' ? 'block' : 'none';
             document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', (tab === 'create' && i === 0) || (tab === 'history' && i === 1)));
             if (tab === 'history') renderHistory();
+            
+            // ถ้าเป็นการสลับไปหน้าสร้างแบบปกติ (ไม่ใช่จากการกด Edit) ให้ล้างค่า Edit ID
             if (tab === 'create' && !document.getElementById('edit-id').value) {
-                document.getElementById('btn-submit').innerText = "สร้างการ์ดตอนนี้ 🎁";
+                resetForm();
             }
+        }
+
+        function resetForm() {
+            document.getElementById('edit-id').value = "";
+            document.getElementById('target-name').value = "";
+            document.getElementById('sender-name').value = "";
+            document.getElementById('wish-select').selectedIndex = 0;
+            document.getElementById('size-select').selectedIndex = 0;
+            document.getElementById('theme-select').selectedIndex = 0;
+            document.getElementById('target-image').value = "";
+            document.getElementById('edit-image-preview').style.display = 'none';
+            document.getElementById('btn-submit').innerText = "สร้างการ์ดตอนนี้ 🎁";
+            currentImageData = "";
         }
 
         function generatePreview() {
@@ -323,14 +370,12 @@
                 date: new Date().toLocaleDateString('th-TH') 
             });
 
-            // Reset edit id after saving
-            document.getElementById('edit-id').value = "";
-            document.getElementById('btn-submit').innerText = "สร้างการ์ดตอนนี้ 🎁";
+            // อย่าเพิ่งล้าง ID ทันที เพื่อให้ผู้ใช้กลับมา "แก้ไขใหม่" ได้สะดวกในหน้า Preview
         }
 
         function saveToHistory(data) {
             let history = JSON.parse(localStorage.getItem('birthday_history') || '[]');
-            const index = history.findIndex(item => item.id === data.id);
+            const index = history.findIndex(item => String(item.id) === String(data.id));
             if (index > -1) {
                 history[index] = data;
             } else {
@@ -361,7 +406,7 @@
 
         function editHistory(id) {
             const history = JSON.parse(localStorage.getItem('birthday_history') || '[]');
-            const item = history.find(i => i.id === id);
+            const item = history.find(i => String(i.id) === String(id));
             if (item) {
                 document.getElementById('edit-id').value = item.id;
                 document.getElementById('target-name').value = item.target;
@@ -371,6 +416,16 @@
                 document.getElementById('theme-select').value = item.theme || "none";
                 currentImageData = item.image || "";
                 
+                // แสดงตัวอย่างรูปภาพเดิมที่โหลดมาจากประวัติ
+                if (currentImageData) {
+                    const previewBox = document.getElementById('edit-image-preview');
+                    const previewImg = document.getElementById('edit-preview-img');
+                    previewImg.src = currentImageData;
+                    previewBox.style.display = 'block';
+                } else {
+                    document.getElementById('edit-image-preview').style.display = 'none';
+                }
+
                 document.getElementById('btn-submit').innerText = "อัปเดตการ์ดใบเดิม 🔄";
                 switchTab('create');
             }
@@ -379,7 +434,7 @@
         function deleteHistory(id) {
             if(!confirm("ต้องการลบประวัตินี้ใช่หรือไม่?")) return;
             let history = JSON.parse(localStorage.getItem('birthday_history') || '[]');
-            history = history.filter(item => item.id !== id);
+            history = history.filter(item => String(item.id) !== String(id));
             localStorage.setItem('birthday_history', JSON.stringify(history));
             renderHistory();
         }
