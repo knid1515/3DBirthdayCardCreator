@@ -85,9 +85,10 @@
         }
 
         #capture-target {
-            background: white; border-radius: 20px;
+            background-color: white; border-radius: 20px;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            position: relative; overflow: hidden; background-size: cover; background-position: center;
+            position: relative; overflow: hidden; 
+            background-size: cover; background-position: center; background-repeat: no-repeat;
             box-shadow: 0 30px 60px rgba(0,0,0,0.5); padding: 40px;
         }
 
@@ -106,7 +107,7 @@
         .profile-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 5px solid white; }
         
         .wish-box {
-            background: rgba(255,255,255,0.9); padding: 25px; border-radius: 25px;
+            background: rgba(255,255,255,0.85); padding: 25px; border-radius: 25px;
             max-width: 85%; text-align: center; color: #333; font-size: 1.2rem;
             box-shadow: 0 10px 20px rgba(0,0,0,0.05); line-height: 1.4;
         }
@@ -291,8 +292,14 @@
             if (currentImageData) { imgEl.src = currentImageData; imgEl.style.display = 'block'; }
             else { imgEl.style.display = 'none'; }
 
-            capture.style.backgroundImage = theme !== 'none' ? `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url('${theme}')` : "none";
-            capture.style.backgroundColor = theme === 'none' ? "#fff" : "transparent";
+            // แก้ไขการแสดงผลพื้นหลังให้ชัดเจนขึ้น
+            if (theme !== 'none') {
+                capture.style.backgroundImage = `linear-gradient(rgba(255,255,255,0.4), rgba(255,255,255,0.4)), url('${theme}')`;
+                capture.style.backgroundColor = "transparent";
+            } else {
+                capture.style.backgroundImage = "none";
+                capture.style.backgroundColor = "#fff";
+            }
 
             document.getElementById('preview-overlay').style.display = 'flex';
 
@@ -338,7 +345,12 @@
 
         function exportToPNG() {
             const area = document.getElementById('capture-target');
-            html2canvas(area, { scale: 2, useCORS: true }).then(canvas => {
+            html2canvas(area, { 
+                scale: 2, 
+                useCORS: true,
+                allowTaint: true,
+                logging: false
+            }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `BirthdayCard_To_${document.getElementById('target-name').value}.png`;
                 link.href = canvas.toDataURL("image/png");
