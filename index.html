@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Birthday Card Creator - Pro Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;600&family=Pattaya&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary: #ff6b95;
+            --primary-dark: #e0527d;
+            --secondary: #4dabf7;
+            --line-green: #06c755;
+            --bg-gradient: linear-gradient(135deg, #fdf2f8 0%, #e0f2fe 100%);
+            --glass: rgba(255, 255, 255, 0.9);
+            --shadow-3d: 0 20px 40px rgba(0,0,0,0.1), 0 10px 10px rgba(0,0,0,0.05);
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Mitr', sans-serif;
+            margin: 0; padding: 0;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* --- 3D Bouncing Loading --- */
+        #loading-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 9999;
+        }
+        .cube-wrapper {
+            width: 50px; height: 50px; background: var(--primary);
+            border-radius: 12px; box-shadow: 0 10px 0 var(--primary-dark);
+            animation: bounce 0.6s infinite alternate cubic-bezier(.5,0.05,1,.5);
+        }
+        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-40px); } }
+
+        /* --- UI Elements --- */
+        .glass-card {
+            background: var(--glass); backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.5); border-radius: 30px;
+            box-shadow: var(--shadow-3d); padding: 25px; text-align: center;
+            width: 95%; max-width: 500px;
+            animation: fadeIn 0.8s ease-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .app-title { font-family: 'Pattaya', sans-serif; color: var(--primary); font-size: 2.5rem; margin: 0 0 5px; }
+        .app-subtitle { color: #666; font-size: 0.9rem; margin-bottom: 25px; }
+
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; background: rgba(0,0,0,0.05); padding: 5px; border-radius: 15px; }
+        .tab-btn { flex: 1; padding: 10px; border-radius: 10px; border: none; cursor: pointer; font-family: inherit; font-weight: 600; transition: 0.3s; background: transparent; color: #666; font-size: 0.85rem; }
+        .tab-btn.active { background: white; color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+
+        .input-group { text-align: left; margin-bottom: 15px; }
+        label { display: block; margin: 0 0 5px 10px; font-weight: 600; color: #555; font-size: 0.85rem; }
+        
+        .input-3d {
+            width: 100%; padding: 12px 15px; border-radius: 15px; border: none;
+            background: #fff; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05), 0 2px 0 #eee;
+            font-family: inherit; outline: none; transition: 0.2s;
+        }
+        .input-3d:focus { border-bottom: 3px solid var(--primary); }
+
+        .btn-3d {
+            background: var(--primary); color: white; border: none;
+            padding: 15px; border-radius: 18px; font-size: 1.1rem; font-weight: 600;
+            cursor: pointer; width: 100%; box-shadow: 0 6px 0 var(--primary-dark);
+            transition: all 0.1s; display: flex; align-items: center; justify-content: center; gap: 10px;
+            margin-top: 10px;
+        }
+        .btn-3d:active { transform: translateY(3px); box-shadow: 0 3px 0 var(--primary-dark); }
+        .btn-line { background: var(--line-green); box-shadow: 0 6px 0 #059b43; margin-top: 0; }
+
+        /* --- Export Preview Overlay --- */
+        #preview-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1000;
+            justify-content: center; align-items: center; flex-direction: column; padding: 20px;
+            overflow-y: auto;
+        }
+
+        #capture-target {
+            background: white; border-radius: 20px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            position: relative; overflow: hidden; background-size: cover; background-position: center;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.5); padding: 40px;
+        }
+
+        .ratio-fb { width: 800px; height: 418px; }
+        .ratio-square { width: 600px; height: 600px; }
+
+        @media (max-width: 850px) {
+            #capture-target { transform: scale(0.4); transform-origin: center; margin: -150px 0; }
+        }
+
+        .profile-ring {
+            width: 150px; height: 150px; border-radius: 50%;
+            padding: 6px; background: linear-gradient(45deg, var(--primary), var(--secondary));
+            margin-bottom: 20px;
+        }
+        .profile-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 5px solid white; }
+        
+        .wish-box {
+            background: rgba(255,255,255,0.9); padding: 25px; border-radius: 25px;
+            max-width: 85%; text-align: center; color: #333; font-size: 1.2rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05); line-height: 1.4;
+        }
+
+        .action-bar { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 340px; }
+        .full-width { grid-column: span 2; }
+
+        .history-container { max-height: 400px; overflow-y: auto; padding-right: 5px; }
+        .history-item {
+            background: white; padding: 12px; border-radius: 20px; margin-bottom: 12px;
+            display: flex; align-items: center; gap: 15px; text-align: left;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-left: 6px solid var(--primary);
+        }
+        .history-thumb { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background: #eee; }
+        .history-content { flex: 1; }
+        .history-content b { font-size: 0.9rem; color: #333; }
+        .history-content p { margin: 0; font-size: 0.75rem; color: #888; }
+        .btn-del { border: none; background: #fef2f2; color: #ef4444; padding: 8px; border-radius: 10px; cursor: pointer; font-size: 0.75rem; }
+    </style>
+</head>
+<body>
+
+    <div id="loading-screen">
+        <div class="cube-wrapper"></div>
+        <p style="margin-top: 50px; font-weight: 600; color: var(--primary);">สตูดิโอพร้อมแล้ว... ✨</p>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="main-app" class="glass-card">
+        <h1 class="app-title">Birthday Card</h1>
+        <p class="app-subtitle">สร้างเซอร์ไพรส์ 3D ในแบบของคุณ</p>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('create')">🎨 สร้างการ์ด</button>
+            <button class="tab-btn" onclick="switchTab('history')">📜 ประวัติ</button>
+        </div>
+
+        <!-- Create Section -->
+        <div id="section-create">
+            <div class="input-group">
+                <label>ชื่อเจ้าของวันเกิด</label>
+                <input type="text" id="target-name" class="input-3d" placeholder="ชื่อเพื่อน...">
+            </div>
+
+            <div class="input-group">
+                <label>รูปภาพเจ้าของวันเกิด</label>
+                <input type="file" id="target-image" class="input-3d" accept="image/*">
+            </div>
+
+            <div class="input-group">
+                <label>ชื่อผู้อวยพร (ผู้ส่ง)</label>
+                <input type="text" id="sender-name" class="input-3d" placeholder="ชื่อของคุณ...">
+            </div>
+
+            <div class="input-group">
+                <label>เลือกขนาดการ์ด</label>
+                <select id="size-select" class="input-3d">
+                    <option value="ratio-square">สี่เหลี่ยมจัตุรัส (LINE / IG)</option>
+                    <option value="ratio-fb">แนวนอน (Facebook Post)</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>เลือกธีมพื้นหลัง</label>
+                <select id="theme-select" class="input-3d">
+                    <option value="none">สีขาวเรียบหรู</option>
+                    <option value="https://images.unsplash.com/photo-1513151233558-d860c5398176?w=1000">Colorful Party</option>
+                    <option value="https://images.unsplash.com/photo-1533282960533-51328aa49826?w=1000">Sparkle Pink</option>
+                    <option value="https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=1000">Spring Garden</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>เลือกคำอวยพร</label>
+                <select id="wish-select" class="input-3d">
+                    <option value="ขอให้มีความสุขล้นปรี่ สุขภาพแข็งแรง เป็นที่รักของทุกคนตลอดไปนะ!">แบบที่ 1: อบอุ่นหัวใจ</option>
+                    <option value="Happy Birthday! ขอให้เป็นปีที่ปังที่สุด คิดทองได้ทอง คิดเงินได้เงินนะ!">แบบที่ 2: ร่ำรวยมั่งคั่ง</option>
+                    <option value="สุขสันต์วันเกิด! แก่ขึ้นอีกปีแต่ความสวย/หล่อห้ามลดลงนะ รักเสมอ!">แบบที่ 3: เพื่อนรักตลอดไป</option>
+                </select>
+            </div>
+
+            <button class="btn-3d" onclick="generatePreview()">สร้างการ์ดตอนนี้ 🎁</button>
+        </div>
+
+        <!-- History Section -->
+        <div id="section-history" style="display:none;">
+            <div id="history-list" class="history-container"></div>
+        </div>
+    </div>
+
+    <!-- Preview Overlay -->
+    <div id="preview-overlay">
+        <div id="capture-target" class="ratio-square">
+            <h1 id="prev-target-name" style="font-family: 'Pattaya'; color: var(--primary); font-size: 3rem; margin: 0;"></h1>
+            <p style="margin: 0 0 15px; font-size: 1rem; color: #888; letter-spacing: 5px; font-weight: bold;">HAPPY BIRTHDAY</p>
+            
+            <div class="profile-ring">
+                <img id="prev-img" src="" class="profile-img" style="display: none;">
+            </div>
+
+            <div class="wish-box" id="prev-wish-text"></div>
+            
+            <p style="font-size: 1.2rem; margin-top: 20px; color: #444;">
+                จาก <span id="prev-sender-name" style="color: var(--primary); font-weight: 600;"></span>
+            </p>
+        </div>
+        
+        <div class="action-bar">
+            <button class="btn-3d btn-line full-width" onclick="shareToLine()">🟢 แชร์ไปที่ LINE</button>
+            <button class="btn-3d" style="background:#27ae60; box-shadow:0 6px 0 #1e8449;" onclick="exportToPNG()">💾 บันทึก PNG</button>
+            <button class="btn-3d" style="background:#7f8c8d; box-shadow:0 6px 0 #616a6b;" onclick="closePreview()">แก้ไขใหม่</button>
+        </div>
+    </div>
+
+    <script>
+        let currentImageData = "";
+
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('loading-screen').style.display = 'none';
+                renderHistory();
+            }, 1000);
+
+            // ระบบย่อขนาดรูปอัตโนมัติ
+            document.getElementById('target-image').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const MAX_SIZE = 500;
+                            let w = img.width, h = img.height;
+                            if (w > h) { if (w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } }
+                            else { if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; } }
+                            canvas.width = w; canvas.height = h;
+                            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                            currentImageData = canvas.toDataURL('image/jpeg', 0.8);
+                        };
+                        img.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+
+        function switchTab(tab) {
+            document.getElementById('section-create').style.display = tab === 'create' ? 'block' : 'none';
+            document.getElementById('section-history').style.display = tab === 'history' ? 'block' : 'none';
+            document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', (tab === 'create' && i === 0) || (tab === 'history' && i === 1)));
+            if (tab === 'history') renderHistory();
+        }
+
+        function generatePreview() {
+            const target = document.getElementById('target-name').value.trim();
+            const sender = document.getElementById('sender-name').value.trim();
+            const wish = document.getElementById('wish-select').value;
+            const size = document.getElementById('size-select').value;
+            const theme = document.getElementById('theme-select').value;
+
+            if (!target || !sender) return alert("กรุณาระบุชื่อเพื่อนและชื่อของคุณด้วยนะครับ");
+
+            const capture = document.getElementById('capture-target');
+            capture.className = size;
+
+            document.getElementById('prev-target-name').innerText = target;
+            document.getElementById('prev-wish-text').innerText = wish;
+            document.getElementById('prev-sender-name').innerText = sender;
+            
+            const imgEl = document.getElementById('prev-img');
+            if (currentImageData) { imgEl.src = currentImageData; imgEl.style.display = 'block'; }
+            else { imgEl.style.display = 'none'; }
+
+            capture.style.backgroundImage = theme !== 'none' ? `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url('${theme}')` : "none";
+            capture.style.backgroundColor = theme === 'none' ? "#fff" : "transparent";
+
+            document.getElementById('preview-overlay').style.display = 'flex';
+
+            saveToHistory({ 
+                id: Date.now(), 
+                target, 
+                sender, 
+                wish, 
+                image: currentImageData, 
+                date: new Date().toLocaleDateString('th-TH') 
+            });
+        }
+
+        function saveToHistory(data) {
+            let history = JSON.parse(localStorage.getItem('birthday_history') || '[]');
+            history.unshift(data);
+            if (history.length > 10) history.pop();
+            localStorage.setItem('birthday_history', JSON.stringify(history));
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            const history = JSON.parse(localStorage.getItem('birthday_history') || '[]');
+            if (history.length === 0) { list.innerHTML = "<p style='color:#aaa; padding:20px;'>ยังไม่มีประวัติการสร้าง</p>"; return; }
+            list.innerHTML = history.map(item => `
+                <div class="history-item">
+                    <img src="${item.image || 'https://via.placeholder.com/50'}" class="history-thumb">
+                    <div class="history-content">
+                        <b>ถึงคุณ ${item.target}</b>
+                        <p>จาก: ${item.sender} | ${item.date}</p>
+                    </div>
+                    <button class="btn-del" onclick="deleteHistory(${item.id})">ลบ</button>
+                </div>
+            `).join('');
+        }
+
+        function deleteHistory(id) {
+            let history = JSON.parse(localStorage.getItem('birthday_history') || '[]');
+            history = history.filter(item => item.id !== id);
+            localStorage.setItem('birthday_history', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function exportToPNG() {
+            const area = document.getElementById('capture-target');
+            html2canvas(area, { scale: 2, useCORS: true }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `BirthdayCard_To_${document.getElementById('target-name').value}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+            });
+        }
+
+        function shareToLine() {
+            const target = document.getElementById('target-name').value;
+            const sender = document.getElementById('sender-name').value;
+            const msg = `สุขสันต์วันเกิดคุณ ${target}! 🎂🎉\nมีความสุขมากๆ นะครับ\nจาก: ${sender}`;
+            window.open(`https://line.me/R/msg/text/?${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        function closePreview() { document.getElementById('preview-overlay').style.display = 'none'; }
+    </script>
+</body>
+</html>
