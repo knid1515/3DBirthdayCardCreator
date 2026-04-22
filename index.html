@@ -45,9 +45,35 @@
             border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 30px;
             box-shadow: var(--shadow-3d); padding: 25px; text-align: center;
             width: 95%; max-width: 500px;
+            position: relative;
             animation: fadeIn 0.8s ease-out;
         }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Help Button Icon */
+        .help-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 35px;
+            height: 35px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 1.2rem;
+            transition: 0.3s;
+            border: 2px solid transparent;
+        }
+        .help-btn:hover {
+            transform: scale(1.1) rotate(10deg);
+            border-color: var(--primary);
+        }
 
         .app-title { font-family: 'Pattaya', sans-serif; color: var(--primary); font-size: 2.5rem; margin: 0 0 5px; }
         .app-subtitle { color: #666; font-size: 0.9rem; margin-bottom: 25px; }
@@ -66,7 +92,6 @@
         }
         .input-3d:focus { border-bottom: 3px solid var(--primary); }
 
-        /* ส่วนแสดงรูปภาพที่เลือกแล้ว (Edit Mode) */
         .image-preview-box {
             display: none;
             margin-top: 10px;
@@ -98,13 +123,35 @@
         .btn-3d:active { transform: translateY(3px); box-shadow: 0 3px 0 var(--primary-dark); }
         .btn-line { background: var(--line-green); box-shadow: 0 6px 0 #059b43; margin-top: 0; }
 
-        /* --- Export Preview Overlay --- */
-        #preview-overlay {
+        /* --- Overlays (Info & Preview) --- */
+        .overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1000;
             justify-content: center; align-items: center; flex-direction: column; padding: 20px;
             overflow-y: auto;
         }
+
+        .modal-card {
+            background: white;
+            padding: 30px;
+            border-radius: 30px;
+            width: 100%;
+            max-width: 450px;
+            text-align: left;
+            position: relative;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .modal-card h2 { color: var(--primary); margin-top: 0; font-family: 'Pattaya', sans-serif; text-align: center; }
+        .step-item { display: flex; gap: 15px; margin-bottom: 15px; align-items: flex-start; }
+        .step-num { 
+            background: var(--primary); color: white; width: 28px; height: 28px; 
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+            flex-shrink: 0; font-weight: 600; font-size: 0.9rem;
+        }
+        .step-text b { color: #333; display: block; margin-bottom: 2px; }
+        .step-text p { margin: 0; font-size: 0.85rem; color: #666; }
 
         #capture-target {
             background-color: white; border-radius: 20px;
@@ -164,6 +211,8 @@
 
     <!-- Main App Container -->
     <div id="main-app" class="glass-card">
+        <div class="help-btn" onclick="toggleInfo(true)" title="แนะนำการใช้งาน">?</div>
+        
         <h1 class="app-title">Birthday Card</h1>
         <p class="app-subtitle">สร้างเซอร์ไพรส์ 3D ในแบบของคุณ</p>
 
@@ -240,8 +289,65 @@
         </div>
     </div>
 
+    <!-- Info Overlay (Instructions) -->
+    <div id="info-overlay" class="overlay">
+        <div class="modal-card">
+            <h2>คำแนะนำการใช้งาน</h2>
+            
+            <div class="step-item">
+                <div class="step-num">1</div>
+                <div class="step-text">
+                    <b>ใส่ชื่อเพื่อน</b>
+                    <p>กรอกชื่อเจ้าของวันเกิดในช่องแรก เพื่อแสดงบนหัวการ์ด</p>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <div class="step-num">2</div>
+                <div class="step-text">
+                    <b>อัปโหลดรูปภาพ</b>
+                    <p>เลือกรูปที่ชัดเจน ระบบจะย่อขนาดให้เล็กที่สุดเพื่อความรวดเร็ว</p>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <div class="step-num">3</div>
+                <div class="step-text">
+                    <b>เลือกขนาดและธีม</b>
+                    <p>เลือกขนาดที่ต้องการโพสต์ (FB/LINE) และธีมสีที่ชอบ</p>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <div class="step-num">4</div>
+                <div class="step-text">
+                    <b>ตรวจสอบความถูกต้อง</b>
+                    <p>กดปุ่มสร้างเพื่อดูตัวอย่าง หากต้องการแก้ไขสามารถย้อนกลับได้</p>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <div class="step-num">5</div>
+                <div class="step-text">
+                    <b>บันทึกหรือแชร์</b>
+                    <p>กดบันทึกเป็น PNG เพื่อเก็บลงเครื่อง หรือกดแชร์ลิงก์ไปที่ LINE ทันที</p>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <div class="step-num">6</div>
+                <div class="step-text">
+                    <b>จัดการประวัติ</b>
+                    <p>ข้อมูลที่สร้างจะเก็บในประวัติ สามารถกลับมาแก้ไขหรือลบได้ทุกเมื่อ</p>
+                </div>
+            </div>
+
+            <button class="btn-3d" style="margin-top:20px;" onclick="toggleInfo(false)">เข้าใจแล้ว ลุยเลย! 🚀</button>
+        </div>
+    </div>
+
     <!-- Preview Overlay -->
-    <div id="preview-overlay">
+    <div id="preview-overlay" class="overlay">
         <div id="capture-target" class="ratio-square">
             <h1 id="prev-target-name" style="font-family: 'Pattaya'; color: var(--primary); font-size: 3rem; margin: 0;"></h1>
             <p style="margin: 0 0 15px; font-size: 1rem; color: #888; letter-spacing: 5px; font-weight: bold;">HAPPY BIRTHDAY</p>
@@ -290,7 +396,6 @@
                             canvas.getContext('2d').drawImage(img, 0, 0, w, h);
                             currentImageData = canvas.toDataURL('image/jpeg', 0.8);
                             
-                            // อัปเดตส่วนแสดงตัวอย่างในหน้า Edit
                             const previewBox = document.getElementById('edit-image-preview');
                             const previewImg = document.getElementById('edit-preview-img');
                             previewImg.src = currentImageData;
@@ -303,13 +408,16 @@
             });
         });
 
+        function toggleInfo(show) {
+            document.getElementById('info-overlay').style.display = show ? 'flex' : 'none';
+        }
+
         function switchTab(tab) {
             document.getElementById('section-create').style.display = tab === 'create' ? 'block' : 'none';
             document.getElementById('section-history').style.display = tab === 'history' ? 'block' : 'none';
             document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', (tab === 'create' && i === 0) || (tab === 'history' && i === 1)));
             if (tab === 'history') renderHistory();
             
-            // ถ้าเป็นการสลับไปหน้าสร้างแบบปกติ (ไม่ใช่จากการกด Edit) ให้ล้างค่า Edit ID
             if (tab === 'create' && !document.getElementById('edit-id').value) {
                 resetForm();
             }
@@ -369,8 +477,6 @@
                 image: currentImageData, 
                 date: new Date().toLocaleDateString('th-TH') 
             });
-
-            // อย่าเพิ่งล้าง ID ทันที เพื่อให้ผู้ใช้กลับมา "แก้ไขใหม่" ได้สะดวกในหน้า Preview
         }
 
         function saveToHistory(data) {
@@ -416,7 +522,6 @@
                 document.getElementById('theme-select').value = item.theme || "none";
                 currentImageData = item.image || "";
                 
-                // แสดงตัวอย่างรูปภาพเดิมที่โหลดมาจากประวัติ
                 if (currentImageData) {
                     const previewBox = document.getElementById('edit-image-preview');
                     const previewImg = document.getElementById('edit-preview-img');
